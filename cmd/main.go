@@ -78,6 +78,8 @@ func main() {
 		}
 	}
 
+	var plugins = []string{"e810"}
+
 	// Run a loop to update the device status
 	go daemon.RunDeviceStatusUpdate(ptpClient, nodeName)
 
@@ -100,6 +102,7 @@ func main() {
 		kubeClient,
 		ptpConfUpdate,
 		stopCh,
+		plugins,
 	).Run()
 
 	tickerPull := time.NewTicker(time.Second * time.Duration(cp.updateInterval))
