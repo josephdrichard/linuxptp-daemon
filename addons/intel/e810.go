@@ -56,6 +56,14 @@ func E810(name string) *plugin.Plugin {
 	}
 }
 
-func PopulateHwConfigE810(hwconfig *ptpv1.HwConfig) error {
+func PopulateHwConfigE810(hwconfigs *[]ptpv1.HwConfig) error {
+	glog.Info("Calling PopulateHwConfigE810")
+	hwConfig := ptpv1.HwConfig{
+		DeviceID: "e810",
+		VendorID: "intel",
+		Failed:   false,
+		Status:   "done",
+	}
+	*hwconfigs = append(*hwconfigs, hwConfig)
 	return nil
 }

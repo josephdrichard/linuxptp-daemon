@@ -81,6 +81,8 @@ type Daemon struct {
 
 	processManager *ProcessManager
 
+	hwconfigs *[]ptpv1.HwConfig
+
 	// channel ensure LinuxPTP.Run() exit when main function exits.
 	// stopCh is created by main function and passed by Daemon via NewLinuxPTP()
 	stopCh <-chan struct{}
@@ -98,6 +100,7 @@ func New(
 	ptpUpdate *LinuxPTPConfUpdate,
 	stopCh <-chan struct{},
 	plugins []string,
+	hwconfigs *[]ptpv1.HwConfig,
 ) *Daemon {
 	if !stdoutToSocket {
 		RegisterMetrics(nodeName)
@@ -112,6 +115,7 @@ func New(
 		processManager: &ProcessManager{},
 		stopCh:         stopCh,
 		pluginManager:  pluginManager,
+		hwconfigs:      hwconfigs,
 	}
 }
 
@@ -170,6 +174,9 @@ func (dn *Daemon) applyNodePTPProfiles() error {
 	// collector (assuming there are no other
 	// references).
 	dn.processManager.process = nil
+
+	//clear hwconfig before updating
+	*dn.hwconfigs = []ptpv1.HwConfig{}
 
 	// TODO:
 	// compare nodeProfile with previous config,
@@ -341,6 +348,8 @@ func (dn *Daemon) applyNodePtpProfile(runID int, nodeProfile *ptpv1.PtpProfile) 
 
 		dn.processManager.process = append(dn.processManager.process, &process)
 	}
+
+	dn.pluginManager.PopulateHwConfig(dn.hwconfigs)
 
 	return nil
 }
