@@ -81,4 +81,4 @@ require (
 	sigs.k8s.io/yaml v1.3.0 // indirect
 )
 
-replace github.com/openshift/ptp-operator => github.com/josephdrichard/ptp-operator v0.0.0-20230118023947-09c60491421c
+replace github.com/openshift/ptp-operator => github.com/josephdrichard/ptp-operator v0.0.0-20230120184953-c6c8151e51e2
