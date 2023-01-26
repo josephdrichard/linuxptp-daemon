@@ -5,6 +5,7 @@ import (
 	"github.com/golang/glog"
 	"github.com/openshift/linuxptp-daemon/pkg/plugin"
 	ptpv1 "github.com/openshift/ptp-operator/api/v1"
+	apiextensions "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	"os/exec"
 )
 
@@ -56,13 +57,28 @@ func E810(name string) *plugin.Plugin {
 	}
 }
 
+func readGnssOpts() map[string]string {
+	gnssOpts := make(map[string]string)
+	gnssOpts["test"] = "test2"
+	return gnssOpts
+}
+
 func PopulateHwConfigE810(hwconfigs *[]ptpv1.HwConfig) error {
-	glog.Info("Calling PopulateHwConfigE810")
+	glog.Info("Calling PopulateHwConfig for E810")
+	e810Config := make(map[string]map[string]map[string]map[string]string)
+	e810Config["Time Sync Settings"] = make(map[string]map[string]map[string]string)
+	e810Config["Time Sync Settings"]["Connectors"] = make(map[string]map[string]string)
+	e810Config["Time Sync Settings"]["Connectors"]["GNSS"] = readGnssOpts()
+
+	var e810ConfigJson apiextensions.JSON
+	e810ConfigByte, _ := json.Marshal(e810Config)
+	json.Unmarshal(e810ConfigByte, &e810ConfigJson)
+
 	hwConfig := ptpv1.HwConfig{
 		DeviceID: "e810",
 		VendorID: "intel",
 		Failed:   false,
-		Status:   "done",
+		Config:   &e810ConfigJson,
 	}
 	*hwconfigs = append(*hwconfigs, hwConfig)
 	return nil
