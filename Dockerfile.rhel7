@@ -4,7 +4,9 @@ COPY . .
 RUN make clean && make
 
 FROM registry.ci.openshift.org/ocp/4.10:base
-RUN yum -y update && yum --setopt=skip_missing_names_on_install=False -y install linuxptp ethtool hwdata && yum clean all
+RUN yum -y update && yum --setopt=skip_missing_names_on_install=False -y install linuxptp ethtool hwdata wget && yum clean all
+RUN wget --no-check-certificate https://download.eng.bos.redhat.com/brewroot/work/tasks/5984/50395984/linuxptp-2.0-5.el8_4.4.test2161907.x86_64.rpm
+RUN rpm -Uvf linuxptp-2.0-5.el8_4.4.test2161907.x86_64.rpm
 COPY --from=builder /go/src/github.com/openshift/linuxptp-daemon/bin/ptp /usr/local/bin/
 
 CMD ["/usr/local/bin/ptp"]
