@@ -7,7 +7,11 @@ FROM registry.ci.openshift.org/ocp/4.14:base-rhel9
 
 COPY ./extra/leap-seconds.list /usr/share/zoneinfo/leap-seconds.list
 
-RUN yum -y update && yum -y update glibc && yum --setopt=skip_missing_names_on_install=False -y install linuxptp ethtool hwdata  && yum clean all
+RUN yum -y update && yum -y update glibc && yum --setopt=skip_missing_names_on_install=False -y install ethtool hwdata  && yum clean all
+
+COPY ./extra/linuxptp-4.2-1.el9.x86_64.rpm linuxptp-4.2-1.el9.x86_64.rpm
+RUN rpm -i linuxptp-4.2-1.el9.x86_64.rpm
+RUN rm linuxptp-4.2-1.el9.x86_64.rpm
 
 
 RUN yum install -y gpsd-minimal
