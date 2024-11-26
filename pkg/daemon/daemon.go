@@ -153,6 +153,7 @@ type ptpProcess struct {
 	ptpClockThreshold *ptpv1.PtpClockThreshold
 	haProfile         map[string][]string // stores list of interface name for each profile
 	syncERelations    *synce.Relations
+	c                 *net.Conn
 }
 
 func (p *ptpProcess) Stopped() bool {
@@ -363,7 +364,7 @@ func (dn *Daemon) applyNodePTPProfiles() error {
 				for _, d := range p.depProcess {
 					if d != nil {
 						time.Sleep(3 * time.Second)
-						go d.CmdRun(false)
+						go d.CmdRun(&(p.c))
 						time.Sleep(3 * time.Second)
 						dn.pluginManager.AfterRunPTPCommand(&p.nodeProfile, d.Name())
 						d.MonitorProcess(config.ProcessConfig{
@@ -774,7 +775,7 @@ func processStatus(c *net.Conn, processName, messageTag string, status int64) {
 	}
 	// ptp4l[5196819.100]: [ptp4l.0.config] PTP_PROCESS_STOPPED:0/1
 	deadProcessMsg := fmt.Sprintf("%s[%d]:[%s] PTP_PROCESS_STATUS:%d\n", processName, time.Now().Unix(), cfgName, status)
-	glog.Infof("%s\n", deadProcessMsg)
+	glog.Infof("%s\t%p\n", deadProcessMsg, c)
 	if c == nil {
 		UpdateProcessStatusMetrics(processName, cfgName, status)
 		return
@@ -825,13 +826,16 @@ func (p *ptpProcess) updateClockClass(c *net.Conn) {
 	}
 }
 
+func (p *ptpProcess) dialSocket() {
+
+}
+
 // cmdRun runs given ptpProcess and restarts on errors
 func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
-	var c net.Conn
 	done := make(chan struct{}) // Done setting up logging.  Go ahead and wait for process
 	defer func() {
-		if stdoutToSocket && c != nil {
-			if err := c.Close(); err != nil {
+		if stdoutToSocket && p.c != nil {
+			if err := (*p.c).Close(); err != nil {
 				glog.Errorf("closing connection returned error %s", err)
 			}
 		}
@@ -883,7 +887,9 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 				case <-p.exitCh:
 					done <- struct{}{}
 				default:
+					var c net.Conn
 					c, err = net.Dial("unix", eventSocket)
+					p.c = &c
 					if err != nil {
 						glog.Errorf("error trying to connect to event socket")
 						time.Sleep(connectionRetryInterval)
@@ -891,12 +897,17 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 					}
 				}
 				scanner := bufio.NewScanner(cmdReader)
-				processStatus(&c, p.name, p.messageTag, PtpProcessUp)
+				processStatus(p.c, p.name, p.messageTag, PtpProcessUp)
+				for _, d := range p.depProcess {
+					if d != nil {
+						d.ProcessStatus(PtpProcessUp)
+					}
+				}
 				for scanner.Scan() {
 					output := scanner.Text()
 					if p.pmcCheck {
 						p.pmcCheck = false
-						go p.updateClockClass(&c)
+						go p.updateClockClass(p.c)
 					}
 
 					if regexErr != nil || !logFilterRegex.MatchString(output) {
@@ -908,12 +919,12 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 					p.processPTPMetrics(output)
 					if p.name == ptp4lProcessName {
 						if strings.Contains(output, ClockClassChangeIndicator) {
-							go p.updateClockClass(&c)
+							go p.updateClockClass(p.c)
 						}
 					} else if p.name == phc2sysProcessName && len(p.haProfile) > 0 {
-						p.announceHAFailOver(&c, output) // do not use go routine since order of execution is important here
+						p.announceHAFailOver(p.c, output) // do not use go routine since order of execution is important here
 					}
-					_, err2 := c.Write([]byte(removeMessageSuffix(output)))
+					_, err2 := (*p.c).Write([]byte(removeMessageSuffix(output)))
 					if err2 != nil {
 						glog.Errorf("Write %s error %s:", output, err2)
 						goto connect
@@ -934,8 +945,8 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 		if err != nil {
 			glog.Errorf("CmdRun() error waiting for %s: %v", p.name, err)
 		}
-		if stdoutToSocket && c != nil {
-			processStatus(&c, p.name, p.messageTag, PtpProcessDown)
+		if stdoutToSocket && p.c != nil {
+			processStatus(p.c, p.name, p.messageTag, PtpProcessDown)
 		} else {
 			processStatus(nil, p.name, p.messageTag, PtpProcessDown)
 		}
@@ -951,8 +962,8 @@ func (p *ptpProcess) cmdRun(stdoutToSocket bool) {
 			newCmd := exec.Command(p.cmd.Args[0], p.cmd.Args[1:]...)
 			p.cmd = newCmd
 		}
-		if stdoutToSocket && c != nil {
-			if err2 := c.Close(); err2 != nil {
+		if stdoutToSocket && p.c != nil {
+			if err2 := (*p.c).Close(); err2 != nil {
 				glog.Errorf("closing connection returned error %s", err2)
 			}
 		}

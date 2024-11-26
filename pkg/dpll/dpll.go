@@ -5,6 +5,7 @@ import (
 	"fmt"
 	ptpv1 "github.com/openshift/ptp-operator/api/v1"
 	"math"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -266,7 +267,12 @@ func (d *DpllConfig) CmdInit() {
 }
 
 // CmdRun ... run command
-func (d *DpllConfig) CmdRun(stdToSocket bool) {
+func (d *DpllConfig) ProcessStatus(status int64) {
+	// noting to run, monitor() function takes care of dpll run
+}
+
+// CmdRun ... run command
+func (d *DpllConfig) CmdRun(**net.Conn) {
 	// noting to run, monitor() function takes care of dpll run
 }
 
