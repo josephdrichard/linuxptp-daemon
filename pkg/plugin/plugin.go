@@ -1,7 +1,7 @@
 package plugin
 
 import (
-	ptpv1 "github.com/openshift/ptp-operator/api/v1"
+	ptpv1 "github.com/josephdrichard/ptp-operator/api/v1"
 )
 
 type New func(string) (*Plugin, *interface{})

@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/openshift/linuxptp-daemon/pkg/leap"
-	ptpv1 "github.com/openshift/ptp-operator/api/v1"
+	"github.com/josephdrichard/linuxptp-daemon/pkg/leap"
+	ptpv1 "github.com/josephdrichard/ptp-operator/api/v1"
 	"github.com/stretchr/testify/assert"
 	"sigs.k8s.io/yaml"
 )
