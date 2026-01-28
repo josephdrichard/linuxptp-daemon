@@ -1,7 +1,11 @@
 FROM golang:1.24.0 AS builder
 WORKDIR /go/src/github.com/k8snetworkplumbingwg/linuxptp-daemon
+
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod go mod download
+
 COPY . .
-RUN make clean && make
+RUN --mount=type=cache,target=/root/.cache/go-build make
 
 FROM quay.io/centos/centos:stream9
 
